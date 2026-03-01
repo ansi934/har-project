@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Activity Recognition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+        h1 { color: #333; font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: 600; font-size: 0.9rem; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+            display: none;
+            text-align: center;
+        }
+        .result-label { font-size: 0.9rem; opacity: 0.9; }
+        .result-text { font-size: 2rem; font-weight: bold; margin: 10px 0; }
+        .confidence { font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px; display: inline-block; }
+
+        /* Quick Test Buttons */
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .test-btn {
+            background: #e9ecef;
+            color: #333;
+            padding: 8px;
+            font-size: 0.75rem;
+            border: 1px solid #ddd;
+        }
+        .test-btn:hover { background: #dee2e6; }
+
+        .retrain-btn {
+            background-color: #6c757d;
+            margin-top: 20px;
+            font-size: 0.85rem;
+        }
+        .retrain-btn:hover { background-color: #545b62; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Human Activity Recognition</h1>
+        <p class="subtitle">6 Activities: Sitting, Standing, Walking, Jogging, Running, Jumping</p>
+        
+        <div class="input-group">
+            <label>Accelerometer X</label>
+            <input type="number" id="accX" placeholder="e.g. 0" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>Accelerometer Y</label>
+            <input type="number" id="accY" placeholder="e.g. 0" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>Accelerometer Z</label>
+            <input type="number" id="accZ" placeholder="e.g. 9.8" step="0.1">
+        </div>
+
+        <button onclick="predictActivity()">Predict Activity</button>
+        
+        <div class="result-box" id="resultBox">
+            <div class="result-label">Predicted Activity</div>
+            <div class="result-text" id="resultText">--</div>
+            <div class="confidence" id="confidenceText">0%</div>
+        </div>
+
+        <p style="margin-top: 20px; font-size: 0.85rem; color: #666; text-align: center;">Quick Test Buttons:</p>
+        <div class="test-grid">
+            <button class="test-btn" onclick="setValues(0, 0, 9.8)">Sitting</button>
+            <button class="test-btn" onclick="setValues(0.5, 0.5, 9.8)">Standing</button>
+            <button class="test-btn" onclick="setValues(2, 3, 9.5)">Walking</button>
+            <button class="test-btn" onclick="setValues(4, 5, 8.5)">Jogging</button>
+            <button class="test-btn" onclick="setValues(8, 10, 6.0)">Running</button>
+            <button class="test-btn" onclick="setValues(2, 1, 15.0)">Jumping</button>
+        </div>
+
+        <button class="retrain-btn" onclick="retrainModel()">Retrain Model</button>
+    </div>
+
+    <script>
+        function setValues(x, y, z) {
+            document.getElementById('accX').value = x;
+            document.getElementById('accY').value = y;
+            document.getElementById('accZ').value = z;
+            predictActivity();
+        }
+
+        async function predictActivity() {
+            const x = document.getElementById('accX').value;
+            const y = document.getElementById('accY').value;
+            const z = document.getElementById('accZ').value;
+
+            if(!x || !y || !z) {
+                alert("Please enter all values");
+                return;
+            }
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: x, y: y, z: z })
+            });
+
+            const data = await response.json();
+            
+            const box = document.getElementById('resultBox');
+            const text = document.getElementById('resultText');
+            const conf = document.getElementById('confidenceText');
+            
+            box.style.display = 'block';
+            text.innerText = data.prediction || "Error";
+            conf.innerText = "Confidence: " + (data.confidence || "0%");
+        }
+
+        async function retrainModel() {
+            const btn = document.querySelector('.retrain-btn');
+            btn.innerText = "Retraining...";
+            
+            await fetch('/retrain', { method: 'POST' });
+            
+            btn.innerText = "Model Retrained!";
+            setTimeout(() => btn.innerText = "Retrain Model", 2000);
+        }
+    </script>
+</body>
+</html>
